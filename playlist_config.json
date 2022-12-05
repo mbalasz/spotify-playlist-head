@@ -1,0 +1,17 @@
+{
+    "playlists_to_mirror": [
+        {
+            "type": "playlist",
+            "id": "",
+            "from_date": "2019-01-01"
+        },
+        {
+            "type": "liked_songs",
+            "most_recent_count": 1000
+        },
+        {
+            "type": "liked_songs",
+            "from_date":"2019-01-01"
+        }
+    ]
+}
