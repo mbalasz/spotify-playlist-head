@@ -67,35 +67,37 @@ class CopyPlaylistFactory:
     def create_playlist(self, original_playlist, playlist_config) -> Playlist:
         pass
 
-class CopyTracksFromDatePlaylistFactory(CopyPlaylistFactory):
+class TracksFromDateCopyPlaylistFactory(CopyPlaylistFactory):
+    def __init__(self, from_date):
+        self.from_date = from_date
+
     def create_playlist(self, original_playlist, playlist_config):
-        from_date = playlist_config['from_date']
-        tracks = self.get_tracks_from_date(original_playlist, from_date)
-        return Playlist("{} [from {}]".format(original_playlist.name, from_date), tracks)
+        tracks = self.get_tracks_from_date(original_playlist, self.from_date)
+        return Playlist("{} [from {}]".format(original_playlist.name, self.from_date), tracks)
 
     def get_tracks_from_date(self, original_playlist, date):
+        # TODO add logic
         pass
 
-class CopyNumRecentTracksPlaylistFactory(CopyPlaylistFactory):
+class NumRecentTracksCopyPlaylistFactory(CopyPlaylistFactory):
+    def __init__(self, num_recent_tracks):
+        self.num_recent_tracks = num_recent_tracks
+
     def create_playlist(self, original_playlist, playlist_config):
-        count = playlist_config['most_recent_count']
-        if count is None:
-            raise Exception(
-                "Can't create Playlist from this configuration. Missing `count` key: {}".format(playlist_config))
-        recent_tracks = self.get_recent_tracks(original_playlist, count)
-        return Playlist("{} [last {}]".format(original_playlist.name), recent_tracks)
+        recent_tracks = self._get_recent_tracks(original_playlist, self.num_recent_tracks)
+        return Playlist("{} [last {}]".format(original_playlist.name, self.num_recent_tracks), recent_tracks)
     
-    def get_recent_tracks(self, original_playlist, count):
-        return sorted(original_playlist.tracks, key=lambda t: t.date_added)[-count:]
-
-
+    def _get_recent_tracks(self, original_playlist, count):
+        return sorted(original_playlist.tracks, key=lambda t: t.added_at)[-count:]
 
 for config in [
     {
         "type": "playlist",
         # "id": "3OI8krl8FxMZsyzJSa8LUM",
-        "id": "6YWdIfKcfus3hSjtpZKngh",
-        "from_date": "2019-01-01"
+        "id": "0nGiC07XVUxBqOGd407pBO",
+        # "id": "6YWdIfKcfus3hSjtpZKngh",
+        "num_recent_tracks": 212
+        # "from_date": "2019-01-01"
     }]:
     if config['type'] == LIKED_SONGS_TYPE:
         playlist_fetcher = LikedSongsFetcher()
@@ -106,9 +108,9 @@ for config in [
     original_playlist = playlist_fetcher.fetch(config)
 
     if 'from_date' in config:
-        factory = CopyTracksFromDatePlaylistFactory()
-    elif 'most_recent_count' in config:
-        factory = CopyNumRecentTracksPlaylistFactory()
+        factory = TracksFromDateCopyPlaylistFactory(config['from_date'])
+    elif 'num_recent_tracks' in config:
+        factory = NumRecentTracksCopyPlaylistFactory(config['num_recent_tracks'])
     else:
         raise Exception("No strategy for copy in config: {}".format(config))
     copy_playlist = factory.create_playlist(original_playlist, config)
@@ -117,10 +119,25 @@ for config in [
     if len(existing_playlists) == 1:
         print("Playlist with name {} exists, deleting existing tracks".format(copy_playlist.name))
         existing_playlist = existing_playlists[0]
-        for track in existing_playlist.tracks:
+        tracks_to_remove = [
+            track 
+            for track 
+            in existing_playlist.tracks 
+            if track.id not in [copy_track.id for copy_track in copy_playlist.tracks]]
+        tracks_to_add = [
+            track
+            for track
+            in copy_playlist.tracks
+            if track.id not in [existing_track.id for existing_track in existing_playlist.tracks]
+        ]
+
+        for track in tracks_to_remove:
             print("Removing track: ({}, {}), added at:{}".format(track.name, track.id, track.added_at))
+        for track in tracks_to_add:
+            print("Adding track: ({}, {}), added at:{}".format(track.name, track.id, track.added_at))
     elif len(existing_playlists) == 0:
         print("Playlist with name {} doesn't exist, will create new one".format(copy_playlist.name))
+        print("Adding {} tracks".format(len(copy_playlist.tracks)))
     else:
         raise Exception("More than one playlist with the name of the copy playlist")
     # use copy_playlist_id to add tracks to it.

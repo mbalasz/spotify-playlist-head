@@ -7,7 +7,7 @@
         },
         {
             "type": "liked_songs",
-            "most_recent_count": 1000
+            "num_recent_tracks": 112
         },
         {
             "type": "liked_songs",
