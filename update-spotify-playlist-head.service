@@ -1,0 +1,9 @@
+[Unit]
+Description=Updates spotify head playlist
+After=network.target
+
+[Service]
+EnvironmentFile=/home/mateusz/apps/spotify-playlist-head/envvars
+WorkingDirectory=/home/mateusz/apps/spotify-playlist-head
+ExecStart=/usr/bin/python3 /home/mateusz/apps/spotify-playlist-head/updater.py
+User=mateusz
